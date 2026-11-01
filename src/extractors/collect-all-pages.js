@@ -1,4 +1,6 @@
+import URL from 'url';
 import { removeAnchor } from 'utils/text';
+import { validateUrl } from 'utils';
 import RootExtractor from 'extractors/root-extractor';
 import GenericExtractor from 'extractors/generic';
 import Resource from 'resource';
@@ -19,6 +21,12 @@ export default async function collectAllPages({
   // If we've gone over 26 pages, something has
   // likely gone wrong.
   while (next_page_url && pages < 26) {
+    // Validate next_page_url scheme and hostname to prevent SSRF and protocol smuggling
+    const parsedNextUrl = URL.parse(next_page_url);
+    if (!validateUrl(parsedNextUrl)) {
+      break;
+    }
+
     pages += 1;
     // eslint-disable-next-line no-await-in-loop
     $ = await Resource.create(next_page_url);
