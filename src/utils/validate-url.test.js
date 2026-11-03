@@ -38,8 +38,12 @@ describe('validateUrl(parsedUrl)', () => {
   it('returns true if url is valid http or https', () => {
     const httpUrl = URL.parse('http://example.com');
     const httpsUrl = URL.parse('https://example.com/some/path?query=param');
+    const upperHttpUrl = { protocol: 'HTTP:', hostname: 'example.com' };
+    const upperHttpsUrl = { protocol: 'HTTPS:', hostname: 'example.com' };
 
     assert.equal(validateUrl(httpUrl), true);
     assert.equal(validateUrl(httpsUrl), true);
+    assert.equal(validateUrl(upperHttpUrl), true);
+    assert.equal(validateUrl(upperHttpsUrl), true);
   });
 });

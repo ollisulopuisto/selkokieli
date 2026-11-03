@@ -244,6 +244,47 @@ function getEncoding(str) {
   return encoding;
 }
 
+var _marked = /*#__PURE__*/_regeneratorRuntime__default["default"].mark(range);
+function range() {
+  var start,
+    end,
+    _args = arguments;
+  return _regeneratorRuntime__default["default"].wrap(function range$(_context) {
+    while (1) {
+      switch (_context.prev = _context.next) {
+        case 0:
+          start = _args.length > 0 && _args[0] !== undefined ? _args[0] : 1;
+          end = _args.length > 1 && _args[1] !== undefined ? _args[1] : 1;
+        case 2:
+          if (!(start <= end)) {
+            _context.next = 7;
+            break;
+          }
+          _context.next = 5;
+          return start += 1;
+        case 5:
+          _context.next = 2;
+          break;
+        case 7:
+        case "end":
+          return _context.stop();
+      }
+    }
+  }, _marked, this);
+}
+
+// Validate URL scheme and hostname to prevent SSRF and protocol smuggling
+// Only HTTP and HTTPS protocols with a valid hostname are allowed.
+function validateUrl() {
+  var _ref = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {},
+    protocol = _ref.protocol,
+    hostname = _ref.hostname;
+  if (!protocol || !hostname) {
+    return false;
+  }
+  return /^https?:$/i.test(protocol);
+}
+
 // Browser does not like us setting user agent
 var REQUEST_HEADERS = cheerio.browser ? {} : {
   'User-Agent': 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
@@ -332,6 +373,17 @@ function _fetchResource() {
           case 0:
             headers = _args.length > 2 && _args[2] !== undefined ? _args[2] : {};
             parsedUrl = parsedUrl || URL__default["default"].parse(encodeURI(url));
+
+            // Validate URL scheme and hostname to prevent SSRF and protocol smuggling
+            if (validateUrl(parsedUrl)) {
+              _context.next = 4;
+              break;
+            }
+            return _context.abrupt("return", {
+              error: true,
+              message: 'The url parameter passed does not look like a valid URL. Please check your URL and try again.'
+            });
+          case 4:
             options = _objectSpread__default["default"]({
               url: parsedUrl.href,
               headers: _objectSpread__default["default"]({}, REQUEST_HEADERS, headers),
@@ -349,31 +401,31 @@ function _fetchResource() {
               // Follow GET redirects; this option is for Node only
               followRedirect: true
             });
-            _context.next = 5;
+            _context.next = 7;
             return get(options);
-          case 5:
+          case 7:
             _yield$get = _context.sent;
             response = _yield$get.response;
             body = _yield$get.body;
-            _context.prev = 8;
+            _context.prev = 10;
             validateResponse(response);
             return _context.abrupt("return", {
               body: body,
               response: response
             });
-          case 13:
-            _context.prev = 13;
-            _context.t0 = _context["catch"](8);
+          case 15:
+            _context.prev = 15;
+            _context.t0 = _context["catch"](10);
             return _context.abrupt("return", {
               error: true,
               message: _context.t0.message
             });
-          case 16:
+          case 18:
           case "end":
             return _context.stop();
         }
       }
-    }, _callee, this, [[8, 13]]);
+    }, _callee, this, [[10, 15]]);
   }));
   return _fetchResource.apply(this, arguments);
 }
@@ -1697,42 +1749,6 @@ var Resource = {
     return $;
   }
 };
-
-var _marked = /*#__PURE__*/_regeneratorRuntime__default["default"].mark(range);
-function range() {
-  var start,
-    end,
-    _args = arguments;
-  return _regeneratorRuntime__default["default"].wrap(function range$(_context) {
-    while (1) {
-      switch (_context.prev = _context.next) {
-        case 0:
-          start = _args.length > 0 && _args[0] !== undefined ? _args[0] : 1;
-          end = _args.length > 1 && _args[1] !== undefined ? _args[1] : 1;
-        case 2:
-          if (!(start <= end)) {
-            _context.next = 7;
-            break;
-          }
-          _context.next = 5;
-          return start += 1;
-        case 5:
-          _context.next = 2;
-          break;
-        case 7:
-        case "end":
-          return _context.stop();
-      }
-    }
-  }, _marked, this);
-}
-
-// extremely simple url validation as a first step
-function validateUrl(_ref) {
-  var hostname = _ref.hostname;
-  // If this isn't a valid url, return an error message
-  return !!hostname;
-}
 
 var merge = function merge(extractor, domains) {
   return domains.reduce(function (acc, domain) {
@@ -7870,7 +7886,7 @@ function collectAllPages(_x) {
 }
 function _collectAllPages() {
   _collectAllPages = _asyncToGenerator__default["default"](/*#__PURE__*/_regeneratorRuntime__default["default"].mark(function _callee(_ref) {
-    var next_page_url, html, $, metaCache, result, Extractor, title, url, pages, previousUrls, extractorOpts, nextPageResult, word_count;
+    var next_page_url, html, $, metaCache, result, Extractor, title, url, pages, previousUrls, parsedNextUrl, extractorOpts, nextPageResult, word_count;
     return _regeneratorRuntime__default["default"].wrap(function _callee$(_context) {
       while (1) {
         switch (_context.prev = _context.next) {
@@ -7882,14 +7898,22 @@ function _collectAllPages() {
             // likely gone wrong.
           case 3:
             if (!(next_page_url && pages < 26)) {
-              _context.next = 16;
+              _context.next = 19;
               break;
             }
+            // Validate next_page_url scheme and hostname to prevent SSRF and protocol smuggling
+            parsedNextUrl = URL__default["default"].parse(next_page_url);
+            if (validateUrl(parsedNextUrl)) {
+              _context.next = 7;
+              break;
+            }
+            return _context.abrupt("break", 19);
+          case 7:
             pages += 1;
             // eslint-disable-next-line no-await-in-loop
-            _context.next = 7;
+            _context.next = 10;
             return Resource.create(next_page_url);
-          case 7:
+          case 10:
             $ = _context.sent;
             html = $.html();
             extractorOpts = {
@@ -7910,7 +7934,7 @@ function _collectAllPages() {
             next_page_url = nextPageResult.next_page_url;
             _context.next = 3;
             break;
-          case 16:
+          case 19:
             word_count = GenericExtractor.word_count({
               content: "<div>".concat(result.content, "</div>")
             });
@@ -7919,7 +7943,7 @@ function _collectAllPages() {
               rendered_pages: pages,
               word_count: word_count
             }));
-          case 18:
+          case 21:
           case "end":
             return _context.stop();
         }

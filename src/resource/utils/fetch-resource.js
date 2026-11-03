@@ -1,6 +1,7 @@
 import URL from 'url';
 import request from 'postman-request';
 
+import { validateUrl } from 'utils';
 import {
   REQUEST_HEADERS,
   FETCH_TIMEOUT,
@@ -88,6 +89,16 @@ export function baseDomain({ host }) {
 
 export default async function fetchResource(url, parsedUrl, headers = {}) {
   parsedUrl = parsedUrl || URL.parse(encodeURI(url));
+
+  // Validate URL scheme and hostname to prevent SSRF and protocol smuggling
+  if (!validateUrl(parsedUrl)) {
+    return {
+      error: true,
+      message:
+        'The url parameter passed does not look like a valid URL. Please check your URL and try again.',
+    };
+  }
+
   const options = {
     url: parsedUrl.href,
     headers: { ...REQUEST_HEADERS, ...headers },
