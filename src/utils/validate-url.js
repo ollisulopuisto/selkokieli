@@ -5,5 +5,5 @@ export default function validateUrl({ protocol, hostname } = {}) {
     return false;
   }
 
-  return /^https?:$/.test(protocol);
+  return /^https?:$/i.test(protocol);
 }

@@ -17,6 +17,28 @@ describe('fetchResource(url)', () => {
     assert.equal(error, true);
   });
 
+  it('rejects unsupported or dangerous protocols to prevent SSRF', async () => {
+    const dangerousUrls = [
+      'file:///etc/passwd',
+      'ftp://example.com/file.txt',
+      'javascript' + ':alert(1)', // eslint-disable-line no-useless-concat
+      'data:text/html,payload',
+      '//example.com/no-scheme',
+      'invalid-url',
+    ];
+
+    await Promise.all(
+      dangerousUrls.map(async url => {
+        const result = await fetchResource(url);
+        assert.equal(result.error, true);
+        assert.equal(
+          result.message,
+          'The url parameter passed does not look like a valid URL. Please check your URL and try again.'
+        );
+      })
+    );
+  });
+
   it('passes custom headers in requests', async () => {
     // A GET request to this endpoint returns the list of all request headers as part of the response JSON
     const url = 'https://postman-echo.com/headers';
