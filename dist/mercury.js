@@ -7462,6 +7462,11 @@ function parseDomain(url) {
   var hostname = parsedUrl.hostname;
   return hostname;
 }
+function isValidCandidate(candidateUrl) {
+  // Validate URL scheme and hostname to prevent returning dangerous protocols
+  // (e.g., javascript:, data:, file:) from untrusted document content
+  return Boolean(candidateUrl && validateUrl(URL__default["default"].parse(candidateUrl)));
+}
 function result(url) {
   return {
     url: url,
@@ -7476,12 +7481,12 @@ var GenericUrlExtractor = {
     var $canonical = $('link[rel=canonical]');
     if ($canonical.length !== 0) {
       var href = $canonical.attr('href');
-      if (href) {
+      if (isValidCandidate(href)) {
         return result(href);
       }
     }
     var metaUrl = extractFromMeta($, CANONICAL_META_SELECTORS, metaCache);
-    if (metaUrl) {
+    if (isValidCandidate(metaUrl)) {
       return result(metaUrl);
     }
     return result(url);

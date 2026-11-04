@@ -1,4 +1,5 @@
 import URL from 'url';
+import { validateUrl } from 'utils';
 import { extractFromMeta } from 'utils/dom';
 
 import { CANONICAL_META_SELECTORS } from './constants';
@@ -7,6 +8,12 @@ function parseDomain(url) {
   const parsedUrl = URL.parse(url);
   const { hostname } = parsedUrl;
   return hostname;
+}
+
+function isValidCandidate(candidateUrl) {
+  // Validate URL scheme and hostname to prevent returning dangerous protocols
+  // (e.g., javascript:, data:, file:) from untrusted document content
+  return Boolean(candidateUrl && validateUrl(URL.parse(candidateUrl)));
 }
 
 function result(url) {
@@ -21,13 +28,13 @@ const GenericUrlExtractor = {
     const $canonical = $('link[rel=canonical]');
     if ($canonical.length !== 0) {
       const href = $canonical.attr('href');
-      if (href) {
+      if (isValidCandidate(href)) {
         return result(href);
       }
     }
 
     const metaUrl = extractFromMeta($, CANONICAL_META_SELECTORS, metaCache);
-    if (metaUrl) {
+    if (isValidCandidate(metaUrl)) {
       return result(metaUrl);
     }
 
