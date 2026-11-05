@@ -784,11 +784,20 @@ function cleanHOnes(article, $) {
   return $;
 }
 
+// Detect dangerous URI schemes in URL attributes (e.g., javascript:, vbscript:)
+// Allow safe data URIs for images (data:image/...) while blocking dangerous MIME types
+var DANGEROUS_URI_RE = /^[\s\x00-\x1f\x7f-\x9f]*(javascript|vbscript|data(?!\s*:\s*image\/))/i;
+function isSafeUrlAttr(attr, val) {
+  if (attr === 'href' || attr === 'src' || attr === 'xlink:href') {
+    return !DANGEROUS_URI_RE.test(val);
+  }
+  return true;
+}
 function removeAllButWhitelist($article, $) {
   $article.find('*').each(function (index, node) {
     var attrs = getAttrs(node);
     setAttrs(node, _Reflect$ownKeys__default["default"](attrs).reduce(function (acc, attr) {
-      if (WHITELIST_ATTRS_RE.test(attr)) {
+      if (WHITELIST_ATTRS_RE.test(attr) && isSafeUrlAttr(attr, attrs[attr])) {
         return _objectSpread__default["default"]({}, acc, _defineProperty__default["default"]({}, attr, attrs[attr]));
       }
       return acc;

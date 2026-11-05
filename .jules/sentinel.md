@@ -1,5 +1,10 @@
 # Sentinel's Journal
 
+## 2026-11-05 - Stored XSS via Dangerous Protocol Attributes in Cleaned Content
+**Vulnerability:** While `cleanAttributes` in `src/utils/dom/clean-attributes.js` whitelisted attributes such as `href`, `src`, and `xlink:href`, it did not validate or sanitize their URL schemes. Untrusted documents containing `href="javascript:..."`, `href="vbscript:..."`, or arbitrary `data:` URIs (such as `data:text/html,...`) had those attributes preserved directly in the extracted article HTML, enabling stored XSS in reading clients and web applications rendering the parser's output.
+**Learning:** Attribute whitelisting is necessary but insufficient when attributes can accept URI values. Attackers can execute arbitrary JavaScript in the context of the consuming application via malicious schemes embedded in permitted attributes like `<a>` hrefs or `<img>` srcs.
+**Prevention:** In DOM cleaners and attribute sanitizers, inspect URL attributes (`href`, `src`, `xlink:href`) for executable or dangerous protocols (`javascript:`, `vbscript:`, non-image `data:`) and strip them while preserving safe protocols, relative paths, and legitimate inline image data (`data:image/...`).
+
 ## 2026-11-04 - Unvalidated Canonical URL Extraction (Downstream XSS & Scheme Smuggling)
 **Vulnerability:** `GenericUrlExtractor` extracted `<link rel="canonical" href="...">` and `<meta property="og:url" content="...">` directly from untrusted HTML documents without validating the scheme or hostname, allowing dangerous URIs like `javascript:`, `file:`, or `data:` to be propagated into the parser's returned `url` property with `domain: null`.
 **Learning:** Downstream consumers (reading applications, share extensions, bookmarkers) frequently take the canonical `result.url` output and render it as clickable links or pass it to web views / HTTP clients assuming the parser only yields web URLs. Extractors that scrape URLs from HTML documents must validate URLs before setting them as canonical representations.

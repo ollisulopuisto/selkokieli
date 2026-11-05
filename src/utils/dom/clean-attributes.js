@@ -2,6 +2,17 @@ import { getAttrs, setAttrs } from 'utils/dom';
 
 import { WHITELIST_ATTRS_RE, KEEP_CLASS } from './constants';
 
+// Detect dangerous URI schemes in URL attributes (e.g., javascript:, vbscript:)
+// Allow safe data URIs for images (data:image/...) while blocking dangerous MIME types
+const DANGEROUS_URI_RE = /^[\s\x00-\x1f\x7f-\x9f]*(javascript|vbscript|data(?!\s*:\s*image\/))/i;
+
+function isSafeUrlAttr(attr, val) {
+  if (attr === 'href' || attr === 'src' || attr === 'xlink:href') {
+    return !DANGEROUS_URI_RE.test(val);
+  }
+  return true;
+}
+
 function removeAllButWhitelist($article, $) {
   $article.find('*').each((index, node) => {
     const attrs = getAttrs(node);
@@ -9,7 +20,7 @@ function removeAllButWhitelist($article, $) {
     setAttrs(
       node,
       Reflect.ownKeys(attrs).reduce((acc, attr) => {
-        if (WHITELIST_ATTRS_RE.test(attr)) {
+        if (WHITELIST_ATTRS_RE.test(attr) && isSafeUrlAttr(attr, attrs[attr])) {
           return { ...acc, [attr]: attrs[attr] };
         }
 
