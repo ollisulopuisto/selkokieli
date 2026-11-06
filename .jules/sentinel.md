@@ -1,5 +1,10 @@
 # Sentinel's Journal
 
+## 2026-11-06 - Stored XSS via Dangerous Protocol Candidates in `srcset` Attributes
+**Vulnerability:** While `cleanAttributes` in `src/utils/dom/clean-attributes.js` inspected single-URI attributes (`href`, `src`, `xlink:href`) for dangerous protocols, `srcset` was included in `WHITELIST_ATTRS` without candidate URI validation. Untrusted HTML containing `<img srcset="javascript:alert(1) 1x">` or mixed candidates with executable/dangerous schemes (such as `data:text/html,...` or `vbscript:`) had those dangerous candidates preserved in the extracted HTML.
+**Learning:** Responsive image attributes like `srcset` accept comma-separated lists of URLs and pixel/width descriptors. Validating single URL attributes does not cover multi-URI attributes where malicious payloads can be hidden in individual candidates or alongside valid image URLs.
+**Prevention:** In attribute sanitizers, parse `srcset` candidates and filter out dangerous URI protocols (`javascript:`, `vbscript:`, dangerous non-image `data:`) on each candidate URL, keeping only valid image candidates and removing the `srcset` attribute completely if no safe candidates remain.
+
 ## 2026-11-05 - Stored XSS via Dangerous Protocol Attributes in Cleaned Content
 **Vulnerability:** While `cleanAttributes` in `src/utils/dom/clean-attributes.js` whitelisted attributes such as `href`, `src`, and `xlink:href`, it did not validate or sanitize their URL schemes. Untrusted documents containing `href="javascript:..."`, `href="vbscript:..."`, or arbitrary `data:` URIs (such as `data:text/html,...`) had those attributes preserved directly in the extracted article HTML, enabling stored XSS in reading clients and web applications rendering the parser's output.
 **Learning:** Attribute whitelisting is necessary but insufficient when attributes can accept URI values. Attackers can execute arbitrary JavaScript in the context of the consuming application via malicious schemes embedded in permitted attributes like `<a>` hrefs or `<img>` srcs.

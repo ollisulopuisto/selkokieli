@@ -793,12 +793,31 @@ function isSafeUrlAttr(attr, val) {
   }
   return true;
 }
+function sanitizeSrcset(val) {
+  if (!val) return null;
+  var candidates = val.match(/(?:\s*)(\S+(?:\s*[\d.]+[wx])?)(?:\s*,\s*)?/g);
+  if (!candidates) return null;
+  var safeCandidates = candidates.map(function (candidate) {
+    return candidate.trim().replace(/,$/, '');
+  }).filter(function (candidate) {
+    var candidateUrl = candidate.split(/\s+/)[0];
+    return candidateUrl && !DANGEROUS_URI_RE.test(candidateUrl);
+  });
+  return safeCandidates.length > 0 ? safeCandidates.join(', ') : null;
+}
 function removeAllButWhitelist($article, $) {
   $article.find('*').each(function (index, node) {
     var attrs = getAttrs(node);
     setAttrs(node, _Reflect$ownKeys__default["default"](attrs).reduce(function (acc, attr) {
-      if (WHITELIST_ATTRS_RE.test(attr) && isSafeUrlAttr(attr, attrs[attr])) {
-        return _objectSpread__default["default"]({}, acc, _defineProperty__default["default"]({}, attr, attrs[attr]));
+      if (WHITELIST_ATTRS_RE.test(attr)) {
+        if (attr === 'srcset') {
+          var cleanedSrcset = sanitizeSrcset(attrs[attr]);
+          if (cleanedSrcset) {
+            return _objectSpread__default["default"]({}, acc, _defineProperty__default["default"]({}, attr, cleanedSrcset));
+          }
+        } else if (isSafeUrlAttr(attr, attrs[attr])) {
+          return _objectSpread__default["default"]({}, acc, _defineProperty__default["default"]({}, attr, attrs[attr]));
+        }
       }
       return acc;
     }, {}));
