@@ -13,6 +13,21 @@ function isSafeUrlAttr(attr, val) {
   return true;
 }
 
+function sanitizeSrcset(val) {
+  if (!val) return null;
+  const candidates = val.match(/(?:\s*)(\S+(?:\s*[\d.]+[wx])?)(?:\s*,\s*)?/g);
+  if (!candidates) return null;
+
+  const safeCandidates = candidates
+    .map(candidate => candidate.trim().replace(/,$/, ''))
+    .filter(candidate => {
+      const candidateUrl = candidate.split(/\s+/)[0];
+      return candidateUrl && !DANGEROUS_URI_RE.test(candidateUrl);
+    });
+
+  return safeCandidates.length > 0 ? safeCandidates.join(', ') : null;
+}
+
 function removeAllButWhitelist($article, $) {
   $article.find('*').each((index, node) => {
     const attrs = getAttrs(node);
@@ -20,8 +35,15 @@ function removeAllButWhitelist($article, $) {
     setAttrs(
       node,
       Reflect.ownKeys(attrs).reduce((acc, attr) => {
-        if (WHITELIST_ATTRS_RE.test(attr) && isSafeUrlAttr(attr, attrs[attr])) {
-          return { ...acc, [attr]: attrs[attr] };
+        if (WHITELIST_ATTRS_RE.test(attr)) {
+          if (attr === 'srcset') {
+            const cleanedSrcset = sanitizeSrcset(attrs[attr]);
+            if (cleanedSrcset) {
+              return { ...acc, [attr]: cleanedSrcset };
+            }
+          } else if (isSafeUrlAttr(attr, attrs[attr])) {
+            return { ...acc, [attr]: attrs[attr] };
+          }
         }
 
         return acc;

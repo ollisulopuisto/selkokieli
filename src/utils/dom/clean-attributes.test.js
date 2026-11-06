@@ -94,4 +94,28 @@ describe('cleanAttributes($)', () => {
     `
     );
   });
+
+  it('sanitizes dangerous URIs from srcset attributes', () => {
+    const $ = cheerio.load(`
+      <div>
+        <img srcset="javascript:alert(1) 1x" alt="xss1" />
+        <img srcset="data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg== 1x" alt="xss2" />
+        <img srcset="safe.jpg 1x, javascript:alert(2) 2x, data:image/png;base64,iVBORw0KGgo= 3x, data:text/html;base64,xyz 4x" alt="mixed" />
+        <img srcset="safe-small.jpg 300w, safe-large.jpg 800w" alt="safe" />
+      </div>
+    `);
+
+    const result = cleanAttributes($('*').first(), $);
+    assertClean(
+      $.html(result),
+      `
+      <div>
+        <img alt="xss1">
+        <img alt="xss2">
+        <img srcset="safe.jpg 1x, data:image/png;base64,iVBORw0KGgo= 3x" alt="mixed">
+        <img srcset="safe-small.jpg 300w, safe-large.jpg 800w" alt="safe">
+      </div>
+    `
+    );
+  });
 });
