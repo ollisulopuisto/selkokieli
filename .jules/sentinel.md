@@ -1,5 +1,10 @@
 # Sentinel's Journal
 
+## 2026-11-07 - Unvalidated Next-Page URL Return (Downstream XSS & Protocol Smuggling)
+**Vulnerability:** `GenericNextPageUrlExtractor` selected candidate pagination links from untrusted document markup based purely on scoring heuristics and returned `topPage.href` directly without verifying whether the URL adhered to a safe web protocol. Although `collectAllPages` guards its internal recursion with `validateUrl()`, consumers invoking Mercury with `fetchAllPages: false` or calling `GenericNextPageUrlExtractor` directly received unvalidated schemes (such as `javascript:`, `file:`, `ftp:`, or `data:`) in `result.next_page_url`.
+**Learning:** Defensive checks placed solely inside consumer workflows (like internal fetch loops) do not safeguard downstream consumers of the returned metadata. Extractors that identify secondary URLs from untrusted HTML must enforce protocol validation before exposing them in extraction outputs.
+**Prevention:** In extractors outputting navigation or link URLs, validate candidate URLs with `validateUrl(URL.parse(...))` to ensure they use valid `http:` or `https:` protocols before returning them.
+
 ## 2026-11-06 - Stored XSS via Dangerous Protocol Candidates in `srcset` Attributes
 **Vulnerability:** While `cleanAttributes` in `src/utils/dom/clean-attributes.js` inspected single-URI attributes (`href`, `src`, `xlink:href`) for dangerous protocols, `srcset` was included in `WHITELIST_ATTRS` without candidate URI validation. Untrusted HTML containing `<img srcset="javascript:alert(1) 1x">` or mixed candidates with executable/dangerous schemes (such as `data:text/html,...` or `vbscript:`) had those dangerous candidates preserved in the extracted HTML.
 **Learning:** Responsive image attributes like `srcset` accept comma-separated lists of URLs and pixel/width descriptors. Validating single URL attributes does not cover multi-URI attributes where malicious payloads can be hidden in individual candidates or alongside valid image URLs.

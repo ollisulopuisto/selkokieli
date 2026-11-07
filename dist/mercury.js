@@ -7477,7 +7477,11 @@ var GenericNextPageUrlExtractor = {
     // If the score is less than 50, we're not confident enough to use it,
     // so we fail.
     if (topPage.score >= 50) {
-      return topPage.href;
+      // Validate next_page_url protocol and hostname to prevent SSRF and protocol smuggling
+      var parsedCandidate = URL__default["default"].parse(topPage.href);
+      if (validateUrl(parsedCandidate)) {
+        return topPage.href;
+      }
     }
     return null;
   }

@@ -34,4 +34,29 @@ describe('GenericNextPageUrlExtractor', () => {
 
     assert.equal(nextPage, null);
   });
+
+  it('rejects dangerous next page URL protocols', () => {
+    const url = 'http://example.com/blog/story';
+    const dangerousLinks = [
+      'javascript' + ':alert(1)', // eslint-disable-line no-script-url, no-useless-concat
+      'file:///etc/passwd2',
+      'ftp://example.com/blog/story/2',
+      'data:text/html,2',
+    ];
+
+    dangerousLinks.forEach(dangerousHref => {
+      const html = `
+        <div>
+          <a href="${dangerousHref}" class="next-page">Next Page 2</a>
+        </div>
+      `;
+      const $ = cheerio.load(html);
+      const nextPage = GenericNextPageUrlExtractor.extract({
+        $,
+        url,
+      });
+
+      assert.equal(nextPage, null);
+    });
+  });
 });

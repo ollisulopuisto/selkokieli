@@ -1,5 +1,6 @@
 import URL from 'url';
 
+import { validateUrl } from 'utils';
 import { articleBaseUrl, removeAnchor } from 'utils/text';
 import scoreLinks from './scoring/score-links';
 
@@ -39,7 +40,11 @@ const GenericNextPageUrlExtractor = {
     // If the score is less than 50, we're not confident enough to use it,
     // so we fail.
     if (topPage.score >= 50) {
-      return topPage.href;
+      // Validate next_page_url protocol and hostname to prevent SSRF and protocol smuggling
+      const parsedCandidate = URL.parse(topPage.href);
+      if (validateUrl(parsedCandidate)) {
+        return topPage.href;
+      }
     }
 
     return null;
