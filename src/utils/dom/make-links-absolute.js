@@ -1,21 +1,34 @@
 import URL from 'url';
 
+import { validateUrl } from 'utils';
 import { getAttrs, setAttr } from 'utils/dom';
 
-function absolutize($, rootUrl, attr) {
-  const baseUrl = $('base').attr('href');
+function getSafeBaseUrl($, rootUrl) {
+  const candidateBaseUrl = $('base').attr('href');
+  if (candidateBaseUrl) {
+    // Validate baseUrl scheme and hostname to prevent using dangerous protocols
+    // (e.g. javascript:, file:, data:) or invalid URLs from untrusted documents
+    const parsed = URL.parse(candidateBaseUrl);
+    if (validateUrl(parsed)) {
+      return candidateBaseUrl;
+    }
+  }
 
+  return rootUrl;
+}
+
+function absolutize($, baseUrl, attr) {
   $(`[${attr}]`).each((_, node) => {
     const attrs = getAttrs(node);
     const url = attrs[attr];
     if (!url) return;
-    const absoluteUrl = URL.resolve(baseUrl || rootUrl, url);
+    const absoluteUrl = URL.resolve(baseUrl, url);
 
     setAttr(node, attr, absoluteUrl);
   });
 }
 
-function absolutizeSet($, rootUrl, $content) {
+function absolutizeSet($, baseUrl, $content) {
   $('[srcset]', $content).each((_, node) => {
     const attrs = getAttrs(node);
     const urlSet = attrs.srcset;
@@ -35,7 +48,7 @@ function absolutizeSet($, rootUrl, $content) {
           .trim()
           .replace(/,$/, '')
           .split(/\s+/);
-        parts[0] = URL.resolve(rootUrl, parts[0]);
+        parts[0] = URL.resolve(baseUrl, parts[0]);
         return parts.join(' ');
       });
       const absoluteUrlSet = [...new Set(absoluteCandidates)].join(', ');
@@ -45,8 +58,10 @@ function absolutizeSet($, rootUrl, $content) {
 }
 
 export default function makeLinksAbsolute($content, $, url) {
-  ['href', 'src'].forEach(attr => absolutize($, url, attr));
-  absolutizeSet($, url, $content);
+  const baseUrl = getSafeBaseUrl($, url);
+
+  ['href', 'src'].forEach(attr => absolutize($, baseUrl, attr));
+  absolutizeSet($, baseUrl, $content);
 
   return $content;
 }

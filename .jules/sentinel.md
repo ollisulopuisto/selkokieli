@@ -1,5 +1,10 @@
 # Sentinel's Journal
 
+## 2026-11-08 - Unvalidated Document `<base href>` in Link Absolutization (Protocol Smuggling & Open Redirects)
+**Vulnerability:** In `src/utils/dom/make-links-absolute.js`, `absolutize` inspected `$('base').attr('href')` from untrusted documents without verifying whether the URL adhered to a safe HTTP/HTTPS protocol. Attackers could supply `<base href="javascript:alert(1)/">`, `data:`, `file:`, or arbitrary schemes, leading `URL.resolve` to prepend dangerous or untrusted schemes to relative URLs within the article content.
+**Learning:** Document `<base>` tags affect resolution across all relative links in an article. When resolving relative URLs to absolute URLs from untrusted HTML, the `<base href>` tag must never be trusted blindly.
+**Prevention:** Always validate document-provided `<base href>` tags using `validateUrl(URL.parse(candidateBaseUrl))` before using them as the base URL for `URL.resolve`, falling back safely to the already-validated `rootUrl`.
+
 ## 2026-11-07 - Unvalidated Next-Page URL Return (Downstream XSS & Protocol Smuggling)
 **Vulnerability:** `GenericNextPageUrlExtractor` selected candidate pagination links from untrusted document markup based purely on scoring heuristics and returned `topPage.href` directly without verifying whether the URL adhered to a safe web protocol. Although `collectAllPages` guards its internal recursion with `validateUrl()`, consumers invoking Mercury with `fetchAllPages: false` or calling `GenericNextPageUrlExtractor` directly received unvalidated schemes (such as `javascript:`, `file:`, `ftp:`, or `data:`) in `result.next_page_url`.
 **Learning:** Defensive checks placed solely inside consumer workflows (like internal fetch loops) do not safeguard downstream consumers of the returned metadata. Extractors that identify secondary URLs from untrusted HTML must enforce protocol validation before exposing them in extraction outputs.
