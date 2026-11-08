@@ -50,6 +50,49 @@ describe('makeLinksAbsolute($)', () => {
     assertClean(result, '<div><img src="http://example.com/#foo"></div>');
   });
 
+  it('uses valid <base href> when provided', () => {
+    const $ = cheerio.load(
+      '<html><head><base href="https://cdn.example.com/assets/" /></head><body><div><a href="post.html">Post</a><img src="pic.jpg" /></div></body></html>'
+    );
+    const $content = $('div');
+
+    const result = $.html(
+      makeLinksAbsolute($content, $, 'https://example.com/article')
+    );
+
+    assertClean(
+      result,
+      '<div><a href="https://cdn.example.com/assets/post.html">Post</a><img src="https://cdn.example.com/assets/pic.jpg"></div>'
+    );
+  });
+
+  it('rejects dangerous or invalid <base href> and falls back to rootUrl', () => {
+    const dangerousBases = [
+      'javascript' + ':alert(1)', // eslint-disable-line no-script-url, no-useless-concat
+      'file:///etc/passwd',
+      'data:text/html,test',
+      'ftp://example.com/',
+      '//cdn.example.com/assets/',
+      'invalid-url',
+    ];
+
+    dangerousBases.forEach(baseHref => {
+      const $ = cheerio.load(
+        `<html><head><base href="${baseHref}" /></head><body><div><a href="post.html">Post</a><img src="pic.jpg" /></div></body></html>`
+      );
+      const $content = $('div');
+
+      const result = $.html(
+        makeLinksAbsolute($content, $, 'https://example.com/article/')
+      );
+
+      assertClean(
+        result,
+        '<div><a href="https://example.com/article/post.html">Post</a><img src="https://example.com/article/pic.jpg"></div>'
+      );
+    });
+  });
+
   describe('makes relative srcsets absolute', () => {
     /**
      * The spec for srcset requires a space character following the comma separating character

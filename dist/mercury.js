@@ -1348,17 +1348,28 @@ function rewriteTopLevel(article, $) {
   return $;
 }
 
-function absolutize($, rootUrl, attr) {
-  var baseUrl = $('base').attr('href');
+function getSafeBaseUrl($, rootUrl) {
+  var candidateBaseUrl = $('base').attr('href');
+  if (candidateBaseUrl) {
+    // Validate baseUrl scheme and hostname to prevent using dangerous protocols
+    // (e.g. javascript:, file:, data:) or invalid URLs from untrusted documents
+    var parsed = URL__default["default"].parse(candidateBaseUrl);
+    if (validateUrl(parsed)) {
+      return candidateBaseUrl;
+    }
+  }
+  return rootUrl;
+}
+function absolutize($, baseUrl, attr) {
   $("[".concat(attr, "]")).each(function (_, node) {
     var attrs = getAttrs(node);
     var url = attrs[attr];
     if (!url) return;
-    var absoluteUrl = URL__default["default"].resolve(baseUrl || rootUrl, url);
+    var absoluteUrl = URL__default["default"].resolve(baseUrl, url);
     setAttr(node, attr, absoluteUrl);
   });
 }
-function absolutizeSet($, rootUrl, $content) {
+function absolutizeSet($, baseUrl, $content) {
   $('[srcset]', $content).each(function (_, node) {
     var attrs = getAttrs(node);
     var urlSet = attrs.srcset;
@@ -1372,7 +1383,7 @@ function absolutizeSet($, rootUrl, $content) {
         // a candidate URL cannot start or end with a comma
         // descriptors are separated from the URLs by unescaped whitespace
         var parts = candidate.trim().replace(/,$/, '').split(/\s+/);
-        parts[0] = URL__default["default"].resolve(rootUrl, parts[0]);
+        parts[0] = URL__default["default"].resolve(baseUrl, parts[0]);
         return parts.join(' ');
       });
       var absoluteUrlSet = _toConsumableArray__default["default"](new _Set__default["default"](absoluteCandidates)).join(', ');
@@ -1381,10 +1392,11 @@ function absolutizeSet($, rootUrl, $content) {
   });
 }
 function makeLinksAbsolute($content, $, url) {
+  var baseUrl = getSafeBaseUrl($, url);
   ['href', 'src'].forEach(function (attr) {
-    return absolutize($, url, attr);
+    return absolutize($, baseUrl, attr);
   });
-  absolutizeSet($, url, $content);
+  absolutizeSet($, baseUrl, $content);
   return $content;
 }
 
