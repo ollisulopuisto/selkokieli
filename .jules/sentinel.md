@@ -1,5 +1,10 @@
 # Sentinel's Journal
 
+## 2026-11-09 - Inconsistent URL Validation in Lead Image Cleaner (Protocol Smuggling & Unvalidated Metadata)
+**Vulnerability:** In `src/cleaners/lead-image-url.js`, `leadImageUrl` candidate values were validated using `validUrl.isWebUri()`, diverging from the codebase-standard `validateUrl()` helper and omitting string type guards. If non-string values or unhandled URL variations passed through custom extractors or cleaners, the parser could fail ungracefully or emit inconsistently validated metadata.
+**Learning:** Cleaning and validation routines for extracted URLs must align on the repository's centralized URL validator (`src/utils/validate-url.js`) rather than relying on legacy third-party helpers with varying scheme and host validation semantics.
+**Prevention:** Use `validateUrl(URL.parse(trimmedUrl))` consistently across all cleaners and extractors handling discovered URLs to enforce HTTP/HTTPS protocol restrictions and hostname presence.
+
 ## 2026-11-08 - Unvalidated Document `<base href>` in Link Absolutization (Protocol Smuggling & Open Redirects)
 **Vulnerability:** In `src/utils/dom/make-links-absolute.js`, `absolutize` inspected `$('base').attr('href')` from untrusted documents without verifying whether the URL adhered to a safe HTTP/HTTPS protocol. Attackers could supply `<base href="javascript:alert(1)/">`, `data:`, `file:`, or arbitrary schemes, leading `URL.resolve` to prepend dangerous or untrusted schemes to relative URLs within the article content.
 **Learning:** Document `<base>` tags affect resolution across all relative links in an article. When resolving relative URLs to absolute URLs from untrusted HTML, the `<base href>` tag must never be trusted blindly.

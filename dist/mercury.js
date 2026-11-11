@@ -22,7 +22,6 @@ var _getIterator = require('@babel/runtime-corejs2/core-js/get-iterator');
 var _Object$assign = require('@babel/runtime-corejs2/core-js/object/assign');
 var _Object$keys = require('@babel/runtime-corejs2/core-js/object/keys');
 var stringDirection = require('string-direction');
-var validUrl = require('valid-url');
 var moment = require('moment-timezone');
 var parseFormat = require('moment-parseformat');
 var wuzzy = require('wuzzy');
@@ -73,7 +72,6 @@ var _getIterator__default = /*#__PURE__*/_interopDefaultLegacy(_getIterator);
 var _Object$assign__default = /*#__PURE__*/_interopDefaultLegacy(_Object$assign);
 var _Object$keys__default = /*#__PURE__*/_interopDefaultLegacy(_Object$keys);
 var stringDirection__default = /*#__PURE__*/_interopDefaultLegacy(stringDirection);
-var validUrl__default = /*#__PURE__*/_interopDefaultLegacy(validUrl);
 var moment__default = /*#__PURE__*/_interopDefaultLegacy(moment);
 var parseFormat__default = /*#__PURE__*/_interopDefaultLegacy(parseFormat);
 var wuzzy__default = /*#__PURE__*/_interopDefaultLegacy(wuzzy);
@@ -6424,9 +6422,13 @@ function cleanAuthor(author) {
 }
 
 function clean$1(leadImageUrl) {
-  leadImageUrl = leadImageUrl.trim();
-  if (validUrl__default["default"].isWebUri(leadImageUrl)) {
-    return leadImageUrl;
+  if (!leadImageUrl || typeof leadImageUrl !== 'string') return null;
+  var trimmedUrl = leadImageUrl.trim();
+  // Validate URL scheme and hostname to prevent returning dangerous protocols
+  // (e.g. javascript:, file:, data:) or invalid URLs from untrusted document content
+  var parsed = URL__default["default"].parse(trimmedUrl);
+  if (validateUrl(parsed)) {
+    return trimmedUrl;
   }
   return null;
 }
