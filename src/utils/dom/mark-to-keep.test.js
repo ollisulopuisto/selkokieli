@@ -45,4 +45,23 @@ describe('markToKeep($)', () => {
     const keptHtml = `<div><iframe src="https://medium.com/foo/bar" class="${KEEP_CLASS}"></iframe></div>`;
     assertClean(result.html(), keptHtml);
   });
+
+  it('does not add invalid keep selectors for dangerous or invalid url schemes', () => {
+    const dangerousUrls = [
+      'javascript' + ':alert(1)', // eslint-disable-line no-script-url, no-useless-concat
+      'file:///etc/passwd',
+      'data:text/html,test',
+      'not-a-valid-url',
+      '//example.com/foo',
+      '',
+    ];
+
+    dangerousUrls.forEach(url => {
+      const $ = cheerio.load(
+        '<div><iframe src="null//null"></iframe><iframe src="https://attacker.com"></iframe></div>'
+      );
+      const result = markToKeep($('*').first(), $, url);
+      assert.equal(result(`iframe.${KEEP_CLASS}`).length, 0);
+    });
+  });
 });

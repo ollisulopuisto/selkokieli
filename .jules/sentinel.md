@@ -1,5 +1,10 @@
 # Sentinel's Journal
 
+## 2026-11-09 - Unvalidated Article URL in `markToKeep` Same-Domain Iframe Retention
+**Vulnerability:** In `src/utils/dom/mark-to-keep.js`, `markToKeep` accepted `url` and interpolated `protocol` and `hostname` directly into a CSS attribute selector (`iframe[src^="${protocol}//${hostname}"]`) without validating them using `validateUrl`. An unvalidated, malformed, or non-web URL (such as `file:`, `javascript:`, or relative URLs) resulted in invalid selector fragments (e.g. `iframe[src^="null//null"]`) or could inadvertently retain unexpected or unsafe iframe elements that `stripJunkTags` is designed to eliminate.
+**Learning:** Even helper utilities that construct dynamic CSS selectors based on URLs must validate that the URL has an approved web protocol (`http:` or `https:`) and hostname before synthesizing selector rules that exempt content from cleanup routines.
+**Prevention:** Always validate `url` with `validateUrl(URL.parse(url))` before constructing origin-specific DOM keep selectors, skipping the dynamic selector if the URL is invalid or dangerous.
+
 ## 2026-11-08 - Unvalidated Document `<base href>` in Link Absolutization (Protocol Smuggling & Open Redirects)
 **Vulnerability:** In `src/utils/dom/make-links-absolute.js`, `absolutize` inspected `$('base').attr('href')` from untrusted documents without verifying whether the URL adhered to a safe HTTP/HTTPS protocol. Attackers could supply `<base href="javascript:alert(1)/">`, `data:`, `file:`, or arbitrary schemes, leading `URL.resolve` to prepend dangerous or untrusted schemes to relative URLs within the article content.
 **Learning:** Document `<base>` tags affect resolution across all relative links in an article. When resolving relative URLs to absolute URLs from untrusted HTML, the `<base href>` tag must never be trusted blindly.

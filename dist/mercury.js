@@ -746,10 +746,12 @@ function markToKeep(article, $, url) {
     tags = KEEP_SELECTORS;
   }
   if (url) {
-    var _URL$parse = URL__default["default"].parse(url),
-      protocol = _URL$parse.protocol,
-      hostname = _URL$parse.hostname;
-    tags = [].concat(_toConsumableArray__default["default"](tags), ["iframe[src^=\"".concat(protocol, "//").concat(hostname, "\"]")]);
+    var parsed = URL__default["default"].parse(url);
+    if (validateUrl(parsed)) {
+      var protocol = parsed.protocol,
+        hostname = parsed.hostname;
+      tags = [].concat(_toConsumableArray__default["default"](tags), ["iframe[src^=\"".concat(protocol, "//").concat(hostname, "\"]")]);
+    }
   }
   $(tags.join(','), article).addClass(KEEP_CLASS);
   return $;
