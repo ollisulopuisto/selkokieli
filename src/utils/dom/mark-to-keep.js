@@ -1,5 +1,6 @@
 import URL from 'url';
 
+import { validateUrl } from 'utils';
 import { KEEP_SELECTORS, KEEP_CLASS } from './constants';
 
 export default function markToKeep(article, $, url, tags = []) {
@@ -8,8 +9,11 @@ export default function markToKeep(article, $, url, tags = []) {
   }
 
   if (url) {
-    const { protocol, hostname } = URL.parse(url);
-    tags = [...tags, `iframe[src^="${protocol}//${hostname}"]`];
+    const parsed = URL.parse(url);
+    if (validateUrl(parsed)) {
+      const { protocol, hostname } = parsed;
+      tags = [...tags, `iframe[src^="${protocol}//${hostname}"]`];
+    }
   }
 
   $(tags.join(','), article).addClass(KEEP_CLASS);
