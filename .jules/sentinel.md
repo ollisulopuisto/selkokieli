@@ -1,5 +1,10 @@
 # Sentinel's Journal
 
+## 2026-11-09 - Inconsistent URL Validation in Lead Image Cleaner (Protocol Smuggling & Unvalidated Metadata)
+**Vulnerability:** In `src/cleaners/lead-image-url.js`, `leadImageUrl` candidate values were validated using `validUrl.isWebUri()`, diverging from the codebase-standard `validateUrl()` helper and omitting string type guards. If non-string values or unhandled URL variations passed through custom extractors or cleaners, the parser could fail ungracefully or emit inconsistently validated metadata.
+**Learning:** Cleaning and validation routines for extracted URLs must align on the repository's centralized URL validator (`src/utils/validate-url.js`) rather than relying on legacy third-party helpers with varying scheme and host validation semantics.
+**Prevention:** Use `validateUrl(URL.parse(trimmedUrl))` consistently across all cleaners and extractors handling discovered URLs to enforce HTTP/HTTPS protocol restrictions and hostname presence.
+
 ## 2026-11-09 - Unvalidated Article URL in `markToKeep` Same-Domain Iframe Retention
 **Vulnerability:** In `src/utils/dom/mark-to-keep.js`, `markToKeep` accepted `url` and interpolated `protocol` and `hostname` directly into a CSS attribute selector (`iframe[src^="${protocol}//${hostname}"]`) without validating them using `validateUrl`. An unvalidated, malformed, or non-web URL (such as `file:`, `javascript:`, or relative URLs) resulted in invalid selector fragments (e.g. `iframe[src^="null//null"]`) or could inadvertently retain unexpected or unsafe iframe elements that `stripJunkTags` is designed to eliminate.
 **Learning:** Even helper utilities that construct dynamic CSS selectors based on URLs must validate that the URL has an approved web protocol (`http:` or `https:`) and hostname before synthesizing selector rules that exempt content from cleanup routines.

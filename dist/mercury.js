@@ -22,7 +22,6 @@ var _getIterator = require('@babel/runtime-corejs2/core-js/get-iterator');
 var _Object$assign = require('@babel/runtime-corejs2/core-js/object/assign');
 var _Object$keys = require('@babel/runtime-corejs2/core-js/object/keys');
 var stringDirection = require('string-direction');
-var validUrl = require('valid-url');
 var moment = require('moment-timezone');
 var parseFormat = require('moment-parseformat');
 var wuzzy = require('wuzzy');
@@ -73,7 +72,6 @@ var _getIterator__default = /*#__PURE__*/_interopDefaultLegacy(_getIterator);
 var _Object$assign__default = /*#__PURE__*/_interopDefaultLegacy(_Object$assign);
 var _Object$keys__default = /*#__PURE__*/_interopDefaultLegacy(_Object$keys);
 var stringDirection__default = /*#__PURE__*/_interopDefaultLegacy(stringDirection);
-var validUrl__default = /*#__PURE__*/_interopDefaultLegacy(validUrl);
 var moment__default = /*#__PURE__*/_interopDefaultLegacy(moment);
 var parseFormat__default = /*#__PURE__*/_interopDefaultLegacy(parseFormat);
 var wuzzy__default = /*#__PURE__*/_interopDefaultLegacy(wuzzy);
@@ -6425,10 +6423,31 @@ function cleanAuthor(author) {
   return normalizeSpaces(author.replace(CLEAN_AUTHOR_RE, '$2').trim());
 }
 
+// The legacy parser recovers a hostname even when the port is not a number
+// (http://example.com:abc/), so check the authority's port here.
+function hasValidPort(url) {
+  var authority = /^[a-z][a-z0-9+.-]*:\/\/([^/?#]*)/i.exec(url);
+  if (!authority) return false;
+  var hostPort = authority[1].slice(authority[1].lastIndexOf('@') + 1);
+  var port = /:([^:\]]*)$/.exec(hostPort);
+  if (!port || port[1] === '') return true;
+  return /^\d+$/.test(port[1]) && Number(port[1]) <= 65535;
+}
 function clean$1(leadImageUrl) {
-  leadImageUrl = leadImageUrl.trim();
-  if (validUrl__default["default"].isWebUri(leadImageUrl)) {
-    return leadImageUrl;
+  if (!leadImageUrl || typeof leadImageUrl !== 'string') return null;
+  var trimmedUrl = leadImageUrl.trim();
+  // Validate URL scheme and hostname to prevent returning dangerous protocols
+  // (e.g. javascript:, file:, data:) or invalid URLs from untrusted document content
+  var parsed;
+  try {
+    parsed = URL__default["default"].parse(trimmedUrl);
+  } catch (e) {
+    // e.g. a malformed percent escape in userinfo: a bad image address must not
+    // abort the whole article parse.
+    return null;
+  }
+  if (validateUrl(parsed) && hasValidPort(trimmedUrl)) {
+    return trimmedUrl;
   }
   return null;
 }
