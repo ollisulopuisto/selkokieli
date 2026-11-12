@@ -57,4 +57,23 @@ describe('clean(leadImageUrl)', () => {
       'HTTP://EXAMPLE.COM/PIC.JPG'
     );
   });
+
+  it('returns null for a malformed percent escape in userinfo instead of throwing', () => {
+    assert.doesNotThrow(() => clean('https://%ZZ@example.com/pic.jpg'));
+    assert.equal(clean('https://%ZZ@example.com/pic.jpg'), null);
+  });
+
+  it('rejects URLs whose port is not a number in range', () => {
+    assert.equal(clean('http://example.com:abc/pic.jpg'), null);
+    assert.equal(clean('http://example.com:80x/pic.jpg'), null);
+    assert.equal(clean('http://example.com:99999/pic.jpg'), null);
+    assert.equal(
+      clean('http://example.com:8080/pic.jpg'),
+      'http://example.com:8080/pic.jpg'
+    );
+    assert.equal(
+      clean('https://example.com:/pic.jpg'),
+      'https://example.com:/pic.jpg'
+    );
+  });
 });

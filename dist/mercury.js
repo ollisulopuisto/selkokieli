@@ -744,10 +744,12 @@ function markToKeep(article, $, url) {
     tags = KEEP_SELECTORS;
   }
   if (url) {
-    var _URL$parse = URL__default["default"].parse(url),
-      protocol = _URL$parse.protocol,
-      hostname = _URL$parse.hostname;
-    tags = [].concat(_toConsumableArray__default["default"](tags), ["iframe[src^=\"".concat(protocol, "//").concat(hostname, "\"]")]);
+    var parsed = URL__default["default"].parse(url);
+    if (validateUrl(parsed)) {
+      var protocol = parsed.protocol,
+        hostname = parsed.hostname;
+      tags = [].concat(_toConsumableArray__default["default"](tags), ["iframe[src^=\"".concat(protocol, "//").concat(hostname, "\"]")]);
+    }
   }
   $(tags.join(','), article).addClass(KEEP_CLASS);
   return $;
@@ -6421,13 +6423,30 @@ function cleanAuthor(author) {
   return normalizeSpaces(author.replace(CLEAN_AUTHOR_RE, '$2').trim());
 }
 
+// The legacy parser recovers a hostname even when the port is not a number
+// (http://example.com:abc/), so check the authority's port here.
+function hasValidPort(url) {
+  var authority = /^[a-z][a-z0-9+.-]*:\/\/([^/?#]*)/i.exec(url);
+  if (!authority) return false;
+  var hostPort = authority[1].slice(authority[1].lastIndexOf('@') + 1);
+  var port = /:([^:\]]*)$/.exec(hostPort);
+  if (!port || port[1] === '') return true;
+  return /^\d+$/.test(port[1]) && Number(port[1]) <= 65535;
+}
 function clean$1(leadImageUrl) {
   if (!leadImageUrl || typeof leadImageUrl !== 'string') return null;
   var trimmedUrl = leadImageUrl.trim();
   // Validate URL scheme and hostname to prevent returning dangerous protocols
   // (e.g. javascript:, file:, data:) or invalid URLs from untrusted document content
-  var parsed = URL__default["default"].parse(trimmedUrl);
-  if (validateUrl(parsed)) {
+  var parsed;
+  try {
+    parsed = URL__default["default"].parse(trimmedUrl);
+  } catch (e) {
+    // e.g. a malformed percent escape in userinfo: a bad image address must not
+    // abort the whole article parse.
+    return null;
+  }
+  if (validateUrl(parsed) && hasValidPort(trimmedUrl)) {
     return trimmedUrl;
   }
   return null;
