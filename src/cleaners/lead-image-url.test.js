@@ -63,6 +63,16 @@ describe('clean(leadImageUrl)', () => {
     assert.equal(clean('https://%ZZ@example.com/pic.jpg'), null);
   });
 
+  it('returns null for malformed bracketed hosts instead of throwing', () => {
+    // url.parse throws TypeError: Invalid URL on bracketed hosts like
+    // 'https://['; cleanImage must catch it and return null so malformed
+    // image metadata cannot abort the whole article parse.
+    assert.doesNotThrow(() => clean('https://['));
+    assert.equal(clean('https://['), null);
+    assert.equal(clean('https://[::1'), null);
+    assert.equal(clean('http://[foo]bar/'), null);
+  });
+
   it('rejects URLs whose port is not a number in range', () => {
     assert.equal(clean('http://example.com:abc/pic.jpg'), null);
     assert.equal(clean('http://example.com:80x/pic.jpg'), null);
