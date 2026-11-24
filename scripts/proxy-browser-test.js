@@ -1,5 +1,5 @@
 const express = require('express');
-const request = require('request');
+const request = require('postman-request');
 
 const app = express();
 let server;
